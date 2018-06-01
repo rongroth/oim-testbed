@@ -33,28 +33,14 @@ public class CollectdUnixSockClient {
 	 * */
 	private String putValLatency = "PUTVAL %s/method-%s/latency-%s N:%d\n";
 	private String putValCount = "PUTVAL %s/method-%s/count-%s N:%d\n";
-	private int callCount = 0;
-	
-	private static CollectdUnixSockClient instance = null;
-	
-	/**
-	 * Yes, this isn't foolproof, but it won't be the end of the world if we accidentally make an orphan.
-	 * @return
-	 */
-	public static CollectdUnixSockClient getInstance() {
-		//TODO: look up singleton creation best practice and implement
-		if(instance == null) {
-			instance = new CollectdUnixSockClient();
-		}
-		return instance;
-	}
+	private String putValStatus = "PUTVAL %s/method-%s/response_code-%s N:%d\n";
 	
 	private java.io.File path = null;
 	private UnixSocketAddress address = null;
 	private UnixSocketChannel channel = null;
 	private PrintWriter w = null;
 	
-	private CollectdUnixSockClient() {
+	public CollectdUnixSockClient() {
 		try {
 			initialize();
 		} catch (IOException e) {
@@ -73,7 +59,7 @@ public class CollectdUnixSockClient {
 	}
 	
 	private boolean checkUnixSockPath() throws IOException {
-        path = new java.io.File("/usr/local/Cellar/collectd/5.8.0_1/var/run/collectd-unixsock");
+        path = new java.io.File("/usr/local/var/run/collectd-unixsock");
         int retries = 0;
         while (!path.exists()) {
             try {
@@ -101,13 +87,17 @@ public class CollectdUnixSockClient {
 		send(data);
 	}
 	
-	public void sendCount(String componentName, String methodName, String status) {
-		callCount++;
+	public void sendCount(String componentName, String methodName, String status, int callCount) {
 		String data = String.format(putValCount, componentName, methodName, status, callCount);
 		send(data);
 	}
 	
-	public void send(String data) {
+	public void sendStatus(String componentName, String methodName, String status, int intStatus) {
+		String data = String.format(putValStatus, componentName, methodName, status, intStatus);
+		send(data);
+	}
+	
+	private void send(String data) {
 		ByteBuffer txbb = ByteBuffer.wrap(data.getBytes());
         try {
 			channel.write(txbb);
@@ -125,6 +115,6 @@ public class CollectdUnixSockClient {
 			e.printStackTrace();
 		}
 	}
-	
+
 
 }
